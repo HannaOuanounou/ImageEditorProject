@@ -188,28 +188,7 @@ class ImageEditorApp:
         except Exception as e:
             messagebox.showerror("Error", f"An unexpected error occurred: {e}")
 
-        # response = openai.Image.create(
-        #     prompt=instruction,
-        #     n=1,
-        #     size="256x256"
-        # )
-        # image_url = response['data'][0]['url']
-        # res = requests.get(image_url)
-        # img = Image.open(BytesIO(res.content))
-
-        # # Sauvegarder l'image générée
-        # output_dir = "/Users/hannaouanounou/Desktop/ImageEditProject/ImageEdited"
-        # if not os.path.exists(output_dir):
-        #     os.makedirs(output_dir)
-
-        # filename = f"generated_{self.image_count}.png"
-        # output_path = os.path.join(output_dir, filename)
-        # img.save(output_path)
-
-        # self.image_count += 1
-        # self.display_generated_image(img, output_path)
-        # messagebox.showinfo("Success", "Image generated successfully!")
-
+        
     def display_generated_image(self, img, output_path):
         img.thumbnail((200, 200), Image.LANCZOS)
         photo_image = ImageTk.PhotoImage(img)
