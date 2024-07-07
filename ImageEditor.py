@@ -7,6 +7,7 @@ import style, EditFunctions
 from NLP_Edit import NLP_Editor
 from ObjectExtractor import ImageProcessor
 from diffusers import DiffusionPipeline
+import change_background
 
 class ImageVariationGenerator:
     def __init__(self):
@@ -192,8 +193,25 @@ class ImageEditorApp:
                 self.extract_objects(action)
             elif action['action'] == "merge":
                 self.merge_objects(action['image_ids'])
+            elif action['action'] == "Change Background":
+                self.change_back(action['image_id'])
             else:
                 self.edit_image(action)
+
+
+    def change_back(self, image_ids):
+        output_dir = "/Users/hannaouanounou/Desktop/Tohar Cheni/ImageEditorProject/ImageEdited"
+        img_paths=[]
+        print(f"change bg of these pictures: {image_ids}")  # Debug statement
+        for image_id in image_ids:
+            for loaded_image in self.loaded_images:
+                if loaded_image[0] == image_id:
+                    img_path = loaded_image[1]
+                    img_paths.append(img_path)
+        new_back=change_background.change_background(img_paths,output_dir)
+        self.display_generated_image(new_back, '/Users/hannaouanounou/Desktop/Tohar Cheni/ImageEditorProject/ImageEdited/newBG_image.png')
+
+
 
     def extract_objects(self, action):
         output_dir = "/Users/hannaouanounou/Desktop/Tohar Cheni/ImageEditorProject/ImageEdited"
@@ -341,7 +359,7 @@ class ImageEditorApp:
     def edit_image(self, action):
         output_path = "/Users/hannaouanounou/Desktop/Tohar Cheni/ImageEditorProject/ImageEdited/"
         print("action: ", action)
-        image_id = action['image_id']
+        image_id = action['image_id'][0]
         print("image_id: ", image_id)
         print("loaded_image: ", self.loaded_images)
         for loaded_image in self.loaded_images:
