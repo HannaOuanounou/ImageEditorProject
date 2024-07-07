@@ -233,11 +233,17 @@ class NLP_Editor:
                         angle = int(re.findall(r'\d+', obj)[0])
                 results.append({"action": "Rotate", "image_id": image_id, "angle": angle})
 
-            elif verb in ["color", "colour", "change", "colore"]:
+            elif verb in ["color", "colour",  "colore"] or (verb =="change" and "color" in objects):
                 for obj in objects:
-                    if obj in listOfcolor:
-                        color = obj
-                results.append({"action": "Change Color", "image_id": image_id, "color": color})
+                    if listOfcolor:
+                        if obj in listOfcolor:
+                            color = obj
+                    results.append({"action": "Change Color", "image_id": image_id, "color": color})
+
+
+            elif self.is_edit_word(verb) and ("background" in objects):
+                    results.append({"action": "Change Background", "image_id": image_id, "color": color})
+
 
             elif verb in ["flip"]:
                 if "left" in instruction or "right" in instruction:
