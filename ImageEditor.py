@@ -7,26 +7,50 @@ import style, EditFunctions
 from NLP_Edit import NLP_Editor
 from ObjectExtractor import ImageProcessor
 from diffusers import DiffusionPipeline
+import change_background
+import openai
+import requests
+from dotenv import load_dotenv
+
+
+
+# Afficher le chemin absolu du script en cours d'exécution
+current_dir = os.path.dirname(os.path.abspath(__file__))
+print(f"Le script est exécuté dans le répertoire : {current_dir}")
+
+
+# Charger les variables d'environnement depuis un fichier .env
+load_dotenv()
+
+# Récupérer le chemin de sortie depuis le fichier .env
+output_dir = os.getenv('OUTPUT_DIR')
+
+# Vérifier si le chemin est défini, sinon lever une erreur ou définir une valeur par défaut
+if not output_dir:
+    raise ValueError("The OUTPUT_DIR environment variable is not set. Please set it in the .env file.")
+
+# Si le chemin n'existe pas, le créer
+if not os.path.exists(output_dir):
+    os.makedirs(output_dir)
+
+print(f"Output directory is set to: {output_dir}")
+
+# Récupérer la clé API OpenAI
+openai_api_key = os.getenv('OPENAI_API_KEY')
+
+if not openai_api_key:
+    raise ValueError("The OpenAI API Key is not set. Please set it in the .env file.")
+else:
+    print(f"Using OpenAI API Key: {openai_api_key}")
 
 class ImageVariationGenerator:
     def __init__(self):
         # Utiliser mps si disponible (Metal Performance Shaders)
         self.device = "mps" if torch.backends.mps.is_available() else "cpu"
         print(f"Using device: {self.device}")
-        self.pipeline = DiffusionPipeline.from_pretrained("stabilityai/stable-diffusion-xl-base-1.0")
-        self.pipeline.to(self.device)
-        # Désactiver le filtrage NSFW
-        if hasattr(self.pipeline, 'safety_checker'):
-            self.pipeline.safety_checker = lambda images, clip_input: (images, False)
-
-    def generate_variations(self, description, n):
-        images = []
-        for i in range(n):
-            with torch.cuda.amp.autocast(enabled=torch.cuda.is_available()):
-                image = self.pipeline(description).images[0]
-            images.append(image)
-        return images
-
+        
+    
+   
 class ImageEditorApp:
     def __init__(self, root):
         self.root = root
@@ -107,6 +131,7 @@ class ImageEditorApp:
 
         img = Image.open(image_path)
         img.thumbnail((200, 200), Image.LANCZOS)
+        #img = img.resize((200, 200), Image.LANCZOS)
         photo_image = ImageTk.PhotoImage(img)
 
         img_label = Label(frame, image=photo_image)
@@ -125,9 +150,12 @@ class ImageEditorApp:
         if var.get() == 0:
             return  # Ignore if the checkbox is unchecked
         print("set_current_image called")  # Debug
-        if self.current_checkbutton and self.current_checkbutton != chk:
+        
+        # Check if there's a previously selected checkbutton
+        if self.current_checkbutton is not None and self.current_checkbutton != chk:
             self.current_checkbutton.deselect()
 
+        # Update the current image and checkbutton
         self.current_image_path = image_path
         self.img_label = img_label
         self.current_image = img
@@ -142,7 +170,17 @@ class ImageEditorApp:
                 frame.destroy()
             else:
                 remaining_images.append((image_id, image_path, var, frame, img))
-        self.loaded_images = remaining_images
+        
+        # Update image IDs after deletion
+        self.loaded_images = []
+        self.image_count = 0
+        for i, (image_id, image_path, var, frame, img) in enumerate(remaining_images):
+            self.image_count += 1
+            new_image_id = f"pic{self.image_count}"
+            frame.children["!label"].config(text=new_image_id)  # Update the ID label text
+            self.loaded_images.append((new_image_id, image_path, var, frame, img))
+        
+        print("Updated image IDs: ", [img[0] for img in self.loaded_images])
 
     def save_selected_images(self):
         print("save_selected_images called")  
@@ -173,8 +211,10 @@ class ImageEditorApp:
     def adjust_text_height(self, event=None):
         # Get the current number of lines in the Text widget
         num_lines = int(self.instruction_text.index('end-1c').split('.')[0])
-        # Adjust the height of the Text widget
-        self.instruction_text.config(height=num_lines)
+        min_height = 1
+        # Adjust the height based on the number of lines
+        new_height = max(min_height, num_lines)
+        self.instruction_text.config(height=new_height)
     
     def process_instruction(self):
         # Get the instruction text from the Text widget
@@ -192,11 +232,27 @@ class ImageEditorApp:
                 self.extract_objects(action)
             elif action['action'] == "merge":
                 self.merge_objects(action['image_ids'])
+            elif action['action'] == "Change Background":
+                self.change_back(action['image_id'],action['color'])
             else:
                 self.edit_image(action)
 
+
+    def change_back(self, image_ids,color):
+        img_paths=[]
+        print(f"change bg of these pictures: {image_ids}")  # Debug statement
+        for image_id in image_ids:
+            for loaded_image in self.loaded_images:
+                if loaded_image[0] == image_id:
+                    img_path = loaded_image[1]
+                    img_paths.append(img_path)
+        new_back,output_path=change_background.change_background(img_paths,color,output_dir)
+        print("new_back: ",new_back)
+        self.display_generated_image(new_back,output_path)
+
+
+
     def extract_objects(self, action):
-        output_dir = "/Users/hannaouanounou/Desktop/Tohar Cheni/ImageEditorProject/ImageEdited"
         print(f"Extracting objects with action: {action}")  # Debug statement
         image_id = action['image_id'][0]
         print("image_id: ", image_id)
@@ -211,33 +267,66 @@ class ImageEditorApp:
         self.display_extracted_objects(objects)
 
     def merge_objects(self, image_ids):
-        output_dir = "/Users/hannaouanounou/Desktop/Tohar Cheni/ImageEditorProject/ImageEdited"
-        img_paths=[]
-        print(f"Merging these pictures: {image_ids}")  # Debug statement
+        img_paths = []
+
+        # Collect image paths based on image_ids
         for image_id in image_ids:
             for loaded_image in self.loaded_images:
                 if loaded_image[0] == image_id:
                     img_path = loaded_image[1]
                     img_paths.append(img_path)
+                    print(f"Debug: Added image path: {img_path}")  # Debug statement
+
+        # Check if img_paths is empty before proceeding
+        if not img_paths:
+            messagebox.showwarning("Warning", "No valid images found to merge. Please check your image IDs.")
+            return
+
+        # Create an instance of ImageProcessor and merge the images
         extractor = ImageProcessor()
-        merged_image = extractor.merge_objects(img_paths,output_dir)
-        self.display_generated_image(merged_image, '/Users/hannaouanounou/Desktop/Tohar Cheni/ImageEditorProject/ImageEdited/merged_image.png')
+        merged_image, merged_image_path = extractor.merge_objects(img_paths, output_dir)
 
-    def generate_new_image(self, instruction):
-        generator = ImageVariationGenerator()
-        images = generator.generate_variations(instruction, 1)
-        image = images[0]
+        # Check if the merge was successful
+        if merged_image:
+            print(f"Debug: Merged image created at: {merged_image_path}")  # Debug statement
+            self.display_generated_image(merged_image, merged_image_path)
+        else:
+            print("Debug: Merging failed, no image to display.")  # Debug statement
 
-        output_dir = "/Users/hannaouanounou/Desktop/ImageEditorProject/ImageEdited"
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
 
-        filename = f"generated_{self.image_count}.png"
-        output_path = os.path.join(output_dir, filename)
-        image.save(output_path)
+    
 
-        self.image_count += 1
-        self.display_generated_image(image, output_path)
+    def generate_new_image(self, action):
+        description = action.get('instruction', '')
+        image_url = self.generate_image_with_openai(description)
+        if image_url:
+            image = Image.open(requests.get(image_url, stream=True).raw)
+            print(f"Debug: Image successfully downloaded and opened. Image size: {image.size}")
+
+            if not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+            filename = f"generated_{self.image_count}.png"
+            output_path = os.path.join(output_dir, filename)
+            image.save(output_path)
+            print(f"Debug: Image saved at: {output_path}, Image size: {image.size}")
+            #self.image_count += 1
+            self.display_generated_image(image, output_path)
+
+
+    def generate_image_with_openai(self, prompt):
+        try:
+            response = openai.Image.create(
+                model="dall-e-3",
+                prompt=prompt,
+                size="1024x1024",
+                n=1,
+                response_format="url"
+            )
+            return response['data'][0]['url']
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to generate image: {e}")
+            return None
+
 
     def display_extracted_objects(self, extracted_objects):
         print("extracted_obj: ", extracted_objects)
@@ -245,7 +334,8 @@ class ImageEditorApp:
         for (object_img, path, label, bbox) in extracted_objects:
             self.image_count += 1
             image_id = f"pic{self.image_count}"
-            object_img.thumbnail((200, 200), Image.LANCZOS)
+            #object_img.thumbnail((200, 200), Image.LANCZOS)
+            object_img.resize((200, 200), Image.LANCZOS)
             photo_image = ImageTk.PhotoImage(object_img)
 
             frame = Frame(self.image_container)
@@ -268,7 +358,8 @@ class ImageEditorApp:
     def display_generated_image(self, img, output_path):
         self.image_count += 1
         image_id = f"pic{self.image_count}"
-        img.thumbnail((200, 200), Image.LANCZOS)
+        #img.thumbnail((200, 200), Image.LANCZOS)
+        img = img.resize((200, 200), Image.LANCZOS)
         photo_image = ImageTk.PhotoImage(img)
 
         frame = Frame(self.image_container)
@@ -299,7 +390,6 @@ class ImageEditorApp:
 
     def apply_edit(self, choice):
         print(f"apply_edit called with choice: {choice}")  # Debug
-        output_dir = "/Users/hannaouanounou/Desktop/Tohar Cheni/ImageEditorProject/ImageEdited"
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
@@ -333,47 +423,72 @@ class ImageEditorApp:
             img = EditFunctions.flip_image_ud(img)
             self.current_image = img
 
-        img.thumbnail((200, 200), Image.LANCZOS)
-        photo_image = ImageTk.PhotoImage(img)
-        self.img_label.config(image=photo_image)
-        self.img_label.image = photo_image
+        # Save the edited image
+        try:
+            img.save(output_path)
+            print(f"Image saved successfully at {output_path}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to save image: {e}")
+            return
+
+        # Display the saved and edited image
+        self.display_generated_image(img, output_path)
+
 
     def edit_image(self, action):
-        output_path = "/Users/hannaouanounou/Desktop/Tohar Cheni/ImageEditorProject/ImageEdited/"
         print("action: ", action)
-        image_id = action['image_id']
-        print("image_id: ", image_id)
-        print("loaded_image: ", self.loaded_images)
-        for loaded_image in self.loaded_images:
-            if loaded_image[0] == image_id:
-                img_path = loaded_image[1]
-                img = loaded_image[4]
+        try:
+        # Vérification de l'existence de l'image_id
+            if not action['image_id']:
+                raise ValueError(f"Image ID is missing for the action '{action['action']}'. Please specify the image on which to perform this action.")
+            
+            image_id = action['image_id'][0]
+            print("image_id: ", image_id)
+            print("loaded_image: ", self.loaded_images)
+            
+            for loaded_image in self.loaded_images:
+                if loaded_image[0] == image_id:
+                    img_path = loaded_image[1]
+                    img = loaded_image[4]
 
-                nlp_edit = NLP_Editor()
-                print("action['action']: ", action['action'])
-                if action['action'] == "Change Color":
-                    if action['color'] == None:
-                        action['color'] = colorchooser.askcolor(title="Choose color")[1]
-                        print("color: ", action['color'])
-                        print("action: ", action)
-                    img = nlp_edit.apply_edit("Change Color", img, action)
-                elif action['action'] == "Rotate":
-                    img = nlp_edit.apply_edit("Rotate", img, action)
-                elif action['action'] == "flip left-right":
-                    img = nlp_edit.apply_edit("flip left-right", img, action)
-                elif action['action'] == "flip up-down":
-                    img = nlp_edit.apply_edit("flip up-down", img, action)
+                    nlp_edit = NLP_Editor()
+                    print("action['action']: ", action['action'])
+                    if action['action'] == "Change Color":
+                        if action['color'] is None:
+                            action['color'] = colorchooser.askcolor(title="Choose color")[1]
+                            print("color: ", action['color'])
+                        img = nlp_edit.apply_edit("Change Color", img, action)
+                    elif action['action'] == "Rotate":
+                        img = nlp_edit.apply_edit("Rotate", img, action)
+                    elif action['action'] == "flip left-right":
+                        img = nlp_edit.apply_edit("flip left-right", img, action)
+                    elif action['action'] == "flip up-down":
+                        img = nlp_edit.apply_edit("flip up-down", img, action)
 
-                if not output_path.lower().endswith(('.png', '.jpg', '.jpeg')):
-                    output_path += image_id + '.png'
+                    # Ensure the output directory exists
+                    if not os.path.exists(output_dir):
+                        os.makedirs(output_dir)
 
-                img.save(output_path)
-                img.thumbnail((200, 200), Image.LANCZOS)
-                photo_image = ImageTk.PhotoImage(img)
-                loaded_image[3].children["!label2"].config(image=photo_image)
-                loaded_image[3].children["!label2"].image = photo_image
+                    # Construct the output path
+                    output_path = os.path.join(output_dir, f"{image_id}_edited.png")
 
-        messagebox.showinfo("Success", "Images edited successfully!")
+                    # Save the edited image
+                    img.save(output_path)
+
+                    # Update the thumbnail and display the edited image
+                    self.display_generated_image(img, output_path)
+
+            messagebox.showinfo("Success", "Image edited and displayed successfully!")
+
+        except IndexError:
+            # Gérer l'absence d'image_id
+            messagebox.showerror("Error", f"No image ID provided for the action '{action['action']}'. Please specify the image to perform this action.")
+        except ValueError as ve:
+            # Afficher le message d'erreur personnalisé
+            messagebox.showerror("Error", str(ve))
+        except Exception as e:
+            # Gérer toutes les autres erreurs
+            messagebox.showerror("Error", f"An error occurred: {str(e)}")
 
 # Création de la fenêtre et lancement de l'application
 root = Tk()
