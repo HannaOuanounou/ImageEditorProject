@@ -1,2 +1,7 @@
+.env
+__pycache__/
+*.pyc
+*.pt
+.DS_Store
 /ImageEditor1.py
 /פרויקט חנה פתיה.docx
