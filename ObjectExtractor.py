@@ -63,6 +63,16 @@ class ImageProcessor:
         plt.show()
 
         return detected_objects
+    
+    def resize_with_aspect_ratio(self, image, max_width, max_height):
+        """Redimensionne une image en conservant le ratio d'aspect."""
+        original_width, original_height = image.size
+        ratio = min(max_width / original_width, max_height / original_height)
+        new_width = int(original_width * ratio)
+        new_height = int(original_height * ratio)
+        
+        return image.resize((new_width, new_height), Image.LANCZOS)
+
 
     def extract_object(self, image_path, object_name, output_dir, confidence_threshold=0.9):
         detected_objects = self.detect_objects(image_path, confidence_threshold)
@@ -79,19 +89,21 @@ class ImageProcessor:
                 extracted_region[mask_bool] = img_np[mask_bool]
 
                 # Extraire l'image en conservant le ratio d'aspect
-                original_width, original_height = x2 - x1, y2 - y1
                 extracted_region_pil = Image.fromarray(extracted_region[y1:y2, x1:x2])
                 
-                # Optionnel: redimensionner l'objet tout en maintenant le ratio d'aspect
-                target_width = 200  # Par exemple, une largeur cible fixe
-                target_height = int((original_height / original_width) * target_width)
-                extracted_region_pil = extracted_region_pil.resize((target_width, target_height), Image.LANCZOS)
-                
+                # Redimensionner l'objet extrait tout en préservant son ratio d'aspect
+                max_width, max_height = 200, 200  # Par exemple, fixer une taille maximale
+                resized_extracted_object = self.resize_with_aspect_ratio(extracted_region_pil, max_width, max_height)
+
+
+                # Sauvegarder l'image redimensionnée
                 if not os.path.exists(output_dir):
                     os.makedirs(output_dir)
                 output_path = os.path.join(output_dir, f"extracted_{object_name}_{i}.png")
-                extracted_region_pil.save(output_path)
-                extracted_objects.append((extracted_region_pil, output_path, label, bbox))
+                resized_extracted_object.save(output_path)
+
+                # Ajouter l'objet redimensionné à la liste des objets extraits
+                extracted_objects.append((resized_extracted_object, output_path, label, bbox))
 
         return extracted_objects
 
@@ -143,3 +155,6 @@ class ImageProcessor:
         print(f"Debug: Merged image saved at: {output_path}, Image size: {new_image.size}")
 
         return new_image, output_path
+
+
+    
