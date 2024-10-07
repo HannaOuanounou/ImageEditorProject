@@ -13,7 +13,7 @@ NLP-based Instruction Parsing: Uses the spaCy model (en_core_web_trf) to interpr
 Object Detection and Extraction via CV: Leverages Mask R-CNN for object detection and extraction from images.
 Image Generation: Uses OpenAI’s DALL-E API to generate new images from user descriptions.
 Image Editing: Supports operations like rotation, color change, flipping, and background replacement.
-Installation
+
 
 Prerequisites
 Python 3.x
@@ -23,9 +23,10 @@ Dependencies
 To install the necessary dependencies, run the following command:
 
 pip install -r requirements.txt
-Environment Setup
 Clone the Git repository:
+
 git clone https://github.com/HannaOuanounou/ImageEditorProject.git
+
 Create a .env file at the project root and add your API keys and output directories as follows:
 OPENAI_API_KEY=<your_openai_api_key>
 OUTPUT_DIR=./output/
