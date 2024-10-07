@@ -1,7 +1,9 @@
+*.pth
 .env
 __pycache__/
 *.pyc
 *.pt
 .DS_Store
+coco/
 /ImageEditor1.py
 /פרויקט חנה פתיה.docx

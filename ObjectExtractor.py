@@ -143,4 +143,3 @@ class ImageProcessor:
         print(f"Debug: Merged image saved at: {output_path}, Image size: {new_image.size}")
 
         return new_image, output_path
-

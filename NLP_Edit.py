@@ -46,6 +46,7 @@ spell = SpellChecker()
 
 # Fonction pour corriger les fautes d'orthographe dans une instruction
 def correct_spelling(instruction, special_terms):
+    print("instruction: ", instruction)
     words = instruction.split()
     corrected_words = []
 
@@ -54,11 +55,14 @@ def correct_spelling(instruction, special_terms):
         if word in special_terms:
             corrected_words.append(word)
         else:
-            corrected_words.append(spell.correction(word))
+            corrected_word = spell.correction(word)
+            if corrected_word is not None:
+                corrected_words.append(corrected_word)
+            else:
+                corrected_words.append(word)  # Use the original word if correction is None
     
     corrected_instruction = " ".join(corrected_words)
     return corrected_instruction
-
 
 
 
@@ -117,12 +121,16 @@ class ColourExtractorStrict:
 
 class NLP_Editor:
     def __init__(self):
-        self.generate_synonyms = self.get_synonyms('generate').union(self.get_synonyms('create')).union(self.get_synonyms('produce'))
-        self.edit_synonyms = self.get_synonyms('edit').union(self.get_synonyms('modify')).union(self.get_synonyms('change'))
+        self.generate_synonyms = self.get_synonyms('generate').union(self.get_synonyms('create')).union(self.get_synonyms('produce')).union(self.get_synonyms('draw')).union(self.get_synonyms('illustrate')).union(self.get_synonyms('visualize')).union(self.get_synonyms('construct'))
+        print(f"Combined generate synonyms: {self.generate_synonyms}")
+        self.edit_synonyms = self.get_synonyms('edit').union(self.get_synonyms('modify')).union(self.get_synonyms('change')).union(self.get_synonyms('add')).union(self.get_synonyms('replace')).union(self.get_synonyms('put'))
         self.extract_synonyms=self.get_synonyms('extract')
-        self.merge_synonyms=self.get_synonyms('merge')
+        self.merge_synonyms=self.get_synonyms('merge').union(self.get_synonyms('join')).union(self.get_synonyms('integrate')).union(self.get_synonyms('fuse')).union(self.get_synonyms('append'))
+        print(f"merge synonyms: {self.merge_synonyms}")
         self.colour_extractor = ColourExtractorStrict(colors)
         self.actions=[]
+        self.generate_keywords = {'generate', 'create', 'produce'}
+        self.edit_keywords = {'rotate', 'flip', 'change', 'extract', 'merge'}
 
 
     @staticmethod
@@ -186,11 +194,13 @@ class NLP_Editor:
     def extract_actions(self,doc):
         actions = []
         for token in doc:
-            if token.pos_ == "VERB":
-                action = {"action": token.lemma_, "image_id": [],"object": []}
-                print(f"\nProcessing token: {token.text} (Lemma: {token.lemma_}, POS: {token.pos_})")
+            lemma = token.lemma_.lower()
+            print(f"Token text: {token.text}, Lemma: {lemma}, POS: {token.pos_}, DEP: {token.dep_}")
+            if (token.pos_ == "VERB") or (lemma in {"rotate", "merge", "color"}):
+                token.pos_ = "VERB"
+                action = {"action": lemma, "image_id": [],"object": []}
+                print(f"Action detected: {action}")
                 self.extract_objects(token, action)
-                #if action["object"]:
                 actions.append(action)
         print("actions:", actions)
         return actions
@@ -242,15 +252,22 @@ class NLP_Editor:
 
 
             elif self.is_edit_word(verb) and ("background" in objects):
+                if extracted_colors:
+                    for obj in objects:
+                        if listOfcolor:
+                            if obj in listOfcolor:
+                                color = obj
+                    results.append({"action": "Change Background", "image_id": image_id, "color": color})
+                else:
                     results.append({"action": "Change Background", "image_id": image_id, "color": color})
 
 
             elif verb in ["flip"]:
                 if "left" in instruction or "right" in instruction:
-                    for image_id in image_ids:
+                    #if image_id in image_ids:
                         results.append({"action": "flip left-right", "image_id": image_id})
                 elif "up" in instruction or "down" in instruction:
-                    for image_id in image_ids:
+                    #if image_id in image_ids:
                         results.append({"action": "flip up-down", "image_id": image_id})
 
             elif self.is_extract_word(verb):
@@ -284,40 +301,88 @@ class NLP_Editor:
                 angle=action['angle']
             return EditFunctions.rotate_image(img, angle)
         elif choice == "flip left-right":
+            print("img: ",img)
             return EditFunctions.flip_image_lr(img)
         elif choice == "flip up-down":
             return EditFunctions.flip_image_ud(img)
         else:
             return img
 
-    def parse_instruction(self,instruction):
-        
-        # Extraire les termes spéciaux (identifiants d'image)
-        image_ids = self.extract_image_ids(instruction)
-        #print(f"Special Terms: {image_ids}")
-
-        # Corriger les fautes d'orthographe dans l'instruction, sans corriger les termes spéciaux
-        corrected_instruction = correct_spelling(instruction, image_ids)
-        #print(f"Corrected Instruction: {corrected_instruction}")
-
+    def parse_instruction(self, instruction):
+        print(f"Instruction received: {instruction}")
         doc = nlp(instruction)
-        print("doc: ",doc)
         actions = []
-        print("actions: ",actions)
+        current_segment = []
+        current_type = None  # Can be 'generate' or 'edit'
 
-        # Vérifier si l'instruction contient des termes similaires à "generate" ou "edit"
-        is_generate = any(self.is_generate_word(token.lemma_) for token in doc)
-        is_edit = any(self.is_edit_word(token.lemma_) for token in doc)
+        for token in doc:
+            lemma = token.lemma_.lower()
+            print(f"Processing token: '{token.text}', Lemma: '{lemma}', POS: '{token.pos_}', DEP: '{token.dep_}'")
+            
+            if self.is_generate_word(lemma) and token.pos_ =='VERB' :
+                print(f"Found generate keyword: '{lemma}'")
+                if current_segment and current_type != 'generate':
+                    # Add accumulated edit segment to actions but do not process yet
+                    segment_text = ' '.join(current_segment).strip()
+                    print(f"Accumulating edit segment: {segment_text}")
+                    segment_text='please '+segment_text
+                    edit_actions = self.process_instruction(segment_text)
+                    actions.extend(edit_actions)
 
-        if is_generate:
-            actions.append({"action": "generate", "instruction": instruction})
-        #elif is_edit:
-            # Appel à la classe NLP_Edit pour traiter les instructions d'édition
-        else:   
-            #actions = self.process_instruction(instruction)
-            #print("editActions: ",edit_actions)
-            #actions.extend(edit_actions)
-            actions.extend(self.process_instruction(instruction))
-            print("actions: ",actions)
+                    current_segment = []
+                current_type = 'generate'
+            elif lemma in self.edit_keywords:
+                print(f"Found edit keyword: '{lemma}'")
+                if current_segment and current_type != 'edit':
+                    # Add accumulated generate segment to actions
+                    segment_text = ' '.join(current_segment).strip()
+                    print(f"Adding generate segment to actions: {segment_text}")
+                    generate_segments = self.split_generate_actions(segment_text)
+                    for segment in generate_segments:
+                        actions.append({
+                            'action': 'generate',
+                            'instruction': segment.strip()
+                        })
+                    current_segment = []
+                current_type = 'edit'
 
+            current_segment.append(token.text)
+            print(f"Current segment: {' '.join(current_segment).strip()} (Type: {current_type})")
+
+        # Process the final accumulated segment
+        if current_segment:
+            action_type = 'generate' if current_type == 'generate' else 'edit'
+            segment_text = ' '.join(current_segment).strip()
+            print(f"Adding final segment to actions: {segment_text} (Type: {action_type})")
+            if action_type == 'generate':
+                generate_segments = self.split_generate_actions(segment_text)
+                for segment in generate_segments:
+                    actions.append({
+                        'action': 'generate',
+                        'instruction': segment.strip()
+                    })
+            else:
+                # Process all edit actions at once
+                segment_text='please '+segment_text
+                edit_actions = self.process_instruction(segment_text)
+                actions.extend(edit_actions)
+
+        print(f"Final actions list: {actions}")
         return actions
+
+
+    def split_generate_actions(self, segment_text):
+        """ Splits a segment containing multiple generate actions into separate generate instructions. """
+        print(f"Splitting generate actions in segment: {segment_text}")
+        generate_segments = []
+        temp_segment = []
+        for word in segment_text.split():
+            if word.lower() in self.generate_keywords:
+                if temp_segment:
+                    generate_segments.append(' '.join(temp_segment))
+                    temp_segment = []
+            temp_segment.append(word)
+        if temp_segment:
+            generate_segments.append(' '.join(temp_segment))
+        print(f"Generated segments: {generate_segments}")
+        return generate_segments

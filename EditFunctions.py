@@ -36,6 +36,7 @@ def change_color(img,  color):
 
 def rotate_image(image,  angle):
     """ Rotate the image by a given angle """
+    print("angle: ", angle)
     if angle==None:
         angle=90
     rotated_image = image.rotate(angle, expand=True)
@@ -43,6 +44,7 @@ def rotate_image(image,  angle):
 
 def flip_image_lr(image):
     """ Flip the image left-right """
+    print("image: ",image)
     flipped = image.transpose(Image.FLIP_LEFT_RIGHT)
     return flipped
 
