@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 *.pth
+=======
+>>>>>>> feature/generate_or_edit
 .env
 __pycache__/
 *.pyc
