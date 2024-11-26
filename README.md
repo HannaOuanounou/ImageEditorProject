@@ -95,14 +95,19 @@ Contributions are welcome! To contribute:
 ## **Future Improvements & Work in Progress**
 
 This project is a work in progress with several planned improvements:
-**Fine-tuning Models**:    
-   Fine-tuning the pre-trained spaCy and Mask R-CNN models for specific tasks or more accurate results.
-**Custom Image Generation (GAN)**:    
-   Train a custom image generation model (GAN) to replace the DALL-E API.
+
+**Fine-tuning Models**:  
+   Fine-tuning the pre-trained spaCy and Mask R-CNN models for specific tasks or more accurate results.  
+   
+**Custom Image Generation (GAN)**:  
+   Train a custom image generation model (GAN) to replace the DALL-E API.  
+   
 **Improved NLP Handling**:    
-   Enhance the model’s ability to handle ambiguous and complex instructions.
+   Enhance the model’s ability to handle ambiguous and complex instructions.  
+   
 **Performance Optimization**:    
-   Reduce image processing times and improve efficiency.
+   Reduce image processing times and improve efficiency.  
+   
 **New Features**:    
    Add advanced filters, object-level editing, and more customizable backgrounds.
 
