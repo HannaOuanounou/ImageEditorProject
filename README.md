@@ -62,16 +62,17 @@ Upload up to 10 images into the editor.
 Use the text input field to issue editing commands. Each image on the interface has a unique name (e.g., pic1, pic2, etc.), which allows you to specify exactly which image you want to edit. You can provide simple or complex instructions, including multiple actions.
 Examples:
 **Single Action Instructions**:
-"Rotate pic1 by 90 degrees"
-"Change the background color of pic2 to blue"
-"Extract the person from pic3"
+"Rotate pic1 by 90 degrees".
+"Change the background color of pic2 to blue".
+"Extract the person from pic3".
+
 **Compound Instructions**:
-"Rotate pic1 by 90 degrees, then change the background color of pic1 to green"
-"Extract the person from pic2 and place them on pic3"
+"Rotate pic1 by 90 degrees, then change the background color of pic1 to green".
+"Extract the person from pic2 and place them on pic3".
 "Flip pic1 horizontally and add a blue sky background to pic2"
 
 
-3. **Generate an Image**:
+4. **Generate an Image**:
 Input a description like "Generate an image of a cat wearing a hat".
 
 
