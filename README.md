@@ -36,7 +36,7 @@ To use this project, ensure the following are installed:
 ## **Installation**
 
 1. **Clone the Git repository**:  
-   git clone https://github.com/HannaOuanounou/ImageEditorProject.git
+   git clone https://github.com/HannaOuanounou/ImageEditorProject.git     
    cd ImageEditorProject
 
 3. **Install the dependencies**:  
@@ -51,7 +51,7 @@ Ensure that large model files are excluded from Git by checking .gitignore (alre
 
 ## **Running the Application**
 
-After setting up the environment, start the application by running:
+After setting up the environment, start the application by running:  
 python ImageEditor.py
 
 ## **Usage**
