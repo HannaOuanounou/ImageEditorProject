@@ -35,18 +35,19 @@ To use this project, ensure the following are installed:
 
 ## **Installation**
 
-1. **Clone the Git repository**:
+1. **Clone the Git repository**:  
    git clone https://github.com/HannaOuanounou/ImageEditorProject.git
    cd ImageEditorProject
 
-2. **Install the dependencies**:
+3. **Install the dependencies**:  
     pip install -r requirements.txt
 
-3. **Set up environment variables**:
-Create a .env file at the project root with the following content:
-OPENAI_API_KEY=<your_openai_api_key>
-OUTPUT_DIR=./output
+4. **Set up environment variables**:  
+Create a .env file at the project root with the following content:  
+OPENAI_API_KEY=<your_openai_api_key>  
+OUTPUT_DIR=./output  
 Ensure that large model files are excluded from Git by checking .gitignore (already configured).
+
 
 ## **Running the Application**
 
