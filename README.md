@@ -63,15 +63,15 @@ Use the text input field to issue editing commands. Each image on the interface 
 
 Examples:
 
-**Single Action Instructions**:
+**Single Action Instructions**:  
 "Rotate pic1 by 90 degrees".  
 "Change the background color of pic2 to blue".  
 "Extract the person from pic3".  
 
-**Compound Instructions**:
-"Rotate pic1 by 90 degrees, then change the background color of pic1 to green".
-"Extract the person from pic2 and place them on pic3".
-"Flip pic1 horizontally and add a blue sky background to pic2"
+**Compound Instructions**:  
+"Rotate pic1 by 90 degrees, then change the background color of pic1 to green".  
+"Extract the person from pic2 and place them on pic3".  
+"Flip pic1 horizontally and add a blue sky background to pic2"  
 
 
 4. **Generate an Image**:
