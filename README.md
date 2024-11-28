@@ -39,6 +39,17 @@ To use this project, ensure the following are installed:
    git clone https://github.com/HannaOuanounou/ImageEditorProject.git     
    cd ImageEditorProject
 
+2. **Create and activate the virtual environment**:  
+Create a virtual environment to isolate the project's dependencies:  
+
+-On macOS/Linux:  
+python3 -m venv venv  # Create a virtual environment in the 'venv' folder
+source venv/bin/activate  # Activate the virtual environment  
+-On Windows:
+python -m venv venv  # Create a virtual environment in the 'venv' folder  
+venv\Scripts\activate  # Activate the virtual environment  
+Once the virtual environment is activated, your terminal should show something like (venv) before the prompt.  
+
 3. **Install the dependencies**:  
     pip install -r requirements.txt
 
