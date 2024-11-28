@@ -1,6 +1,10 @@
 import tkinter as tk
 from tkinter import filedialog, Label, Button, Frame, Text, Checkbutton, IntVar, messagebox, Tk ,colorchooser, Scrollbar
 from PIL import Image, ImageTk
+from PIL import Image
+print(Image.__version__)
+import torchvision
+print(torchvision.__version__)
 import torch
 import os
 import style, EditFunctions
