@@ -2,7 +2,7 @@ import spacy
 from spacy.tokens import Span
 from PIL import Image
 from transformers import AutoTokenizer, AutoModel
-import EditFunctions # Assurez-vous que EditFunctions contient vos fonctions d'édition d'image
+import EditFunctions
 from nltk.corpus import wordnet as wn
 import nltk
 import re
