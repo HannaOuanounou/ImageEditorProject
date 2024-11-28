@@ -113,6 +113,11 @@ This project is a work in progress with several planned improvements:
    
 **Custom Image Generation (GAN)**:  
    Train a custom image generation model (GAN) to replace the DALL-E API.  
+
+   This project aims to train a custom image generation model (GAN) to replace the DALL-E API.  
+   You can find the source code for this project on [GitHub](https://github.com/HannaOuanounou/ImageGenerator).  
+   (It's in progress).  
+   
    
 **Improved NLP Handling**:    
    Enhance the model’s ability to handle ambiguous and complex instructions.  
