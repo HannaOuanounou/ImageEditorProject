@@ -9,7 +9,7 @@ imutils
 nltk
 matplotlib
 openai
-pipreqs==0.5.0
+pipreqs
 Pillow
 pixellib
 pyspellchecker
